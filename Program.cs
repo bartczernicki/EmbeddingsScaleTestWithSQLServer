@@ -50,7 +50,7 @@ namespace EmbeddingsScaleTestWithSQLServer
 
                     // Only add the first paragraph
                     string? paragraph = null;
-                    if (data?["paragraphs"] != null && data["paragraphs"].HasValues && data["paragraphs"][0] != null)
+                    if (data?["paragraphs"] != null && data?["paragraphs"].HasValues && data?["paragraphs"][0] != null)
                     {
                         paragraph = data["paragraphs"][0].ToString();
                     }
