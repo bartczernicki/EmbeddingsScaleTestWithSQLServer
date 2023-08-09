@@ -37,7 +37,7 @@ namespace EmbeddingsScaleTestWithSQLServer
                 }
             }
 
-            var totalTokenLength = 0;
+            int totalTokenLength = 0, totalCharactersLength = 0;
             List<string> passages = new List<string>(200000);
             using (FileStream fileStream = new FileStream(wikipediaFilepath, FileMode.Open, FileAccess.Read))
             using (GZipStream compressionStream = new GZipStream(fileStream, CompressionMode.Decompress))
@@ -59,17 +59,19 @@ namespace EmbeddingsScaleTestWithSQLServer
                     if (paragraph != null)
                     {
                         passages.Add(paragraph);
-                    }
 
-                    // Return the optimal text encodings, this is if tokens can be split perfect (no overlap)
-                    var encodedTokens = cl100kBaseEncoding.Encode(paragraph);
-                    totalTokenLength += encodedTokens.Count;
+                        // Return the optimal text encodings, this is if tokens can be split perfect (no overlap)
+                        var encodedTokens = cl100kBaseEncoding.Encode(paragraph);
+                        totalTokenLength += encodedTokens.Count;
+                        totalCharactersLength += paragraph.Length;
+                    }
                 }
             }
 
             Console.WriteLine("Wikipedia Passages Count: " + passages.Count.ToString("N0"));
-            Console.WriteLine("Embeddings Tokens Count: " + totalTokenLength.ToString("N0"));
-            Console.WriteLine("Embeddings Tokens OpenAI Processing Cost: " + string.Format("{0:C}", totalTokenLength * 0.0001/1000));
+            Console.WriteLine("Total Text Characters Processed: " + totalCharactersLength.ToString("N0"));
+            Console.WriteLine("Total Text (OpenAI) Tokens Processed: " + totalTokenLength.ToString("N0"));
+            Console.WriteLine("Total Text (OpenAI) Tokens Processing Cost: " + string.Format("{0:C}", totalTokenLength * 0.0001/1000));
         }
     }
 }
