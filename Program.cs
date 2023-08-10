@@ -7,6 +7,8 @@ using Newtonsoft.Json;
 using System.IO;
 using System.Collections.Generic;
 using SharpToken;
+using EmbeddingsScaleTestWithSQLServer.Classes;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace EmbeddingsScaleTestWithSQLServer
 {
@@ -37,6 +39,7 @@ namespace EmbeddingsScaleTestWithSQLServer
                 }
             }
 
+
             int totalTokenLength = 0, totalCharactersLength = 0;
             List<string> passages = new List<string>(200000);
             using (FileStream fileStream = new FileStream(wikipediaFilepath, FileMode.Open, FileAccess.Read))
@@ -46,24 +49,20 @@ namespace EmbeddingsScaleTestWithSQLServer
                 string? line; // Declare line as nullable
                 while ((line = streamReader.ReadLine()) != null)
                 {
-                    var data = JsonConvert.DeserializeObject<dynamic>(line.Trim());
+                    var simpleWikiData = JsonConvert.DeserializeObject<SimpleWiki>(line.Trim());
 
-                    // Only add the first paragraph
-                    string? paragraph = null;
-                    if (data?["paragraphs"] != null && data?["paragraphs"].HasValues && data?["paragraphs"][0] != null)
+                    if (simpleWikiData != null)
                     {
-                        paragraph = data["paragraphs"][0].ToString();
-                    }
-                    //var paragraph = data["paragraphs"][0].ToString();
+                        foreach (var paragraph in simpleWikiData.paragraphs)
+                        {
+                            passages.Add(paragraph);
 
-                    if (paragraph != null)
-                    {
-                        passages.Add(paragraph);
+                            // Return the optimal text encodings, this is if tokens can be split perfect (no overlap)
+                            var encodedTokens = cl100kBaseEncoding.Encode(paragraph);
+                            totalTokenLength += encodedTokens.Count;
+                            totalCharactersLength += paragraph.Length;
+                        }
 
-                        // Return the optimal text encodings, this is if tokens can be split perfect (no overlap)
-                        var encodedTokens = cl100kBaseEncoding.Encode(paragraph);
-                        totalTokenLength += encodedTokens.Count;
-                        totalCharactersLength += paragraph.Length;
                     }
                 }
             }
