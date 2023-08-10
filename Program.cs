@@ -40,7 +40,7 @@ namespace EmbeddingsScaleTestWithSQLServer
             {
                 using (SqlConnection connection = new SqlConnection(connectionString))
                 {
-                    connection.Open();
+                    await connection.OpenAsync();
 
                     using (SqlCommand command = new SqlCommand(string.Empty, connection))
                     {
@@ -89,6 +89,8 @@ namespace EmbeddingsScaleTestWithSQLServer
                         // Concat the paragraphs into single string
                         var concatenatedParagraphs = String.Join(' ', simpleWikiData.paragraphs);
                         var concatenatedParagraphTokens = cl100kBaseEncoding.Encode(concatenatedParagraphs);
+                        totalTokenLength += concatenatedParagraphTokens.Count;
+                        maxTokensInSingleParagraph = (concatenatedParagraphs.Length > maxTokensInSingleParagraph) ? concatenatedParagraphs.Length : maxTokensInSingleParagraph;
 
                         // Split this using Semantic Kernel
                         var paragraphsWithSemanticKernel = new List<string>();
@@ -119,6 +121,7 @@ namespace EmbeddingsScaleTestWithSQLServer
                                 using (SqlCommand command = new SqlCommand(string.Empty, connection))
                                 {
                                     command.Transaction = insertTransaction;
+                                    command.CommandTimeout = 60; // seconds
                                     command.CommandText = "INSERT INTO WikipediaPassagesParagraphs(WikiId, ParagraphId, Paragraph) VALUES(@wikiId, @paragraphId, @paragraph)";
                                     command.Parameters.Add(new SqlParameter("@wikiId", SqlDbType.Int));
                                     command.Parameters.Add(new SqlParameter("@paragraphId", SqlDbType.Int));
@@ -129,6 +132,8 @@ namespace EmbeddingsScaleTestWithSQLServer
                                         // If paragraphs can be combined less than token max, combine them
                                         if (concatenatedParagraphTokens.Count < MAXTOKENSPERPARAGRAPH)
                                         {
+                                            totalCharactersLength += concatenatedParagraphs.Length;
+                                            passages.Add(concatenatedParagraphs);
                                             command.Parameters[0].Value = simpleWikiData.id;
                                             command.Parameters[1].Value = 1;
                                             command.Parameters[2].Value = concatenatedParagraphs;
@@ -145,6 +150,9 @@ namespace EmbeddingsScaleTestWithSQLServer
                                             foreach (var paragraph in paragraphsWithSemanticKernel)
                                             {
                                                 paragraphCount++;
+                                                totalCharactersLength += paragraph.Length;
+                                                passages.Add(paragraph);
+
                                                 command.Parameters[0].Value = simpleWikiData.id;
                                                 command.Parameters[1].Value = paragraphCount;
                                                 command.Parameters[2].Value = paragraph;
@@ -168,37 +176,7 @@ namespace EmbeddingsScaleTestWithSQLServer
                             }
 
                             await connection.CloseAsync();
-                        }
-
-
-
-                        //passages.Add(paragraph);
-
-
-                        //using (SqlConnection connection = new SqlConnection(connectionString))
-                        //{
-                        //    connection.Open();
-
-
-                        //}
-
-                                //// Return the optimal text encodings, this is if tokens can be split perfect (no overlap)
-                                //var encodedTokens = cl100kBaseEncoding.Encode(paragraph);
-                                //maxTokensInSingleParagraph = (encodedTokens.Count > maxTokensInSingleParagraph) ? encodedTokens.Count : maxTokensInSingleParagraph;
-                                //totalTokenLength += encodedTokens.Count;
-                                //totalCharactersLength += paragraph.Length;
-                        
-
-                        //foreach (var paragraph in simpleWikiData.paragraphs)
-                        //{
-                        //    passages.Add(paragraph);
-
-                        //    // Return the optimal text encodings, this is if tokens can be split perfect (no overlap)
-                        //    var encodedTokens = cl100kBaseEncoding.Encode(paragraph);
-                        //    maxTokensInSingleParagraph = (encodedTokens.Count > maxTokensInSingleParagraph) ? encodedTokens.Count : maxTokensInSingleParagraph;
-                        //    totalTokenLength += encodedTokens.Count;
-                        //    totalCharactersLength += paragraph.Length;
-                        //}
+                        } 
                     }
                 }
             }
