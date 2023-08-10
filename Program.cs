@@ -62,7 +62,6 @@ namespace EmbeddingsScaleTestWithSQLServer
                             totalTokenLength += encodedTokens.Count;
                             totalCharactersLength += paragraph.Length;
                         }
-
                     }
                 }
             }
