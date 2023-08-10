@@ -1,14 +1,8 @@
-﻿using System.IO.Compression;
-using System.Net;
-using System.Text;
-using System.Net.Http;
-using System;
+﻿using EmbeddingsScaleTestWithSQLServer.Classes;
 using Newtonsoft.Json;
-using System.IO;
-using System.Collections.Generic;
 using SharpToken;
-using EmbeddingsScaleTestWithSQLServer.Classes;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.IO.Compression;
+using System.Text;
 
 namespace EmbeddingsScaleTestWithSQLServer
 {
@@ -40,7 +34,7 @@ namespace EmbeddingsScaleTestWithSQLServer
             }
 
 
-            int totalTokenLength = 0, totalCharactersLength = 0;
+            int totalTokenLength = 0, totalCharactersLength = 0, maxTokensInSingleParagraph = 0;
             List<string> passages = new List<string>(200000);
             using (FileStream fileStream = new FileStream(wikipediaFilepath, FileMode.Open, FileAccess.Read))
             using (GZipStream compressionStream = new GZipStream(fileStream, CompressionMode.Decompress))
@@ -59,6 +53,7 @@ namespace EmbeddingsScaleTestWithSQLServer
 
                             // Return the optimal text encodings, this is if tokens can be split perfect (no overlap)
                             var encodedTokens = cl100kBaseEncoding.Encode(paragraph);
+                            maxTokensInSingleParagraph = (encodedTokens.Count > maxTokensInSingleParagraph) ? encodedTokens.Count : maxTokensInSingleParagraph;
                             totalTokenLength += encodedTokens.Count;
                             totalCharactersLength += paragraph.Length;
                         }
@@ -66,7 +61,8 @@ namespace EmbeddingsScaleTestWithSQLServer
                 }
             }
 
-            Console.WriteLine("Wikipedia Passages Count: " + passages.Count.ToString("N0"));
+            Console.WriteLine("Wikipedia Paragraphs Count: " + passages.Count.ToString("N0"));
+            Console.WriteLine("Max Tokens in a single paragraph: " + maxTokensInSingleParagraph.ToString("N0"));
             Console.WriteLine("Total Text Characters Processed: " + totalCharactersLength.ToString("N0"));
             Console.WriteLine("Total Text (OpenAI) Tokens Processed: " + totalTokenLength.ToString("N0"));
             Console.WriteLine("Total Text (OpenAI) Tokens Processing Cost: " + string.Format("{0:C}", totalTokenLength * 0.0001/1000));
